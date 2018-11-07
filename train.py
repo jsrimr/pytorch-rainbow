@@ -20,7 +20,7 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args)
 
     if args.double:
         next_q_values = current_model(next_state)
-        next_actions = next_q_values.max(1)[1].unsqueeze(1).squeeze(1)
+        next_actions = next_q_values.max(1)[1].unsqueeze(1)
         next_q_value = next_q_state_values.gather(1, next_actions).squeeze(1)
     else:
         next_q_value = next_q_state_values.max(1)[0]

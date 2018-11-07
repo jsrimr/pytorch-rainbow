@@ -12,7 +12,7 @@ from common.utils import epsilon_scheduler, update_target, create_log_dir, print
 from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 
 from arguments import get_args
-from model import DuelingCnnDQN
+from model import DQN
 from storage import ReplayBuffer
 from train import compute_td_loss
 
@@ -24,8 +24,8 @@ if __name__ == "__main__":
     env = wrap_deepmind(env)
     env = wrap_pytorch(env)
 
-    current_model = DuelingCnnDQN(env).to(args.device)
-    target_model = DuelingCnnDQN(env).to(args.device)
+    current_model = DQN(env, args).to(args.device)
+    target_model = DQN(env, args).to(args.device)
 
     replay_buffer = ReplayBuffer(args.buffer_size)
 
