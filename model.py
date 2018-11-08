@@ -136,5 +136,5 @@ class NoisyLinear(nn.Linear):
         self.epsilon_bias = self.epsilon_bias.normal_()
     
     def remove_noise(self):
-        self.epsilon_weight = self.epislon_weight.zero_()
+        self.epsilon_weight = self.epsilon_weight.zero_()
         self.epsilon_bias = self.epsilon_bias.zero_()

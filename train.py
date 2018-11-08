@@ -110,7 +110,6 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args,
     if args.prioritized_replay:
         td_error = (q_value - expected_q_value.detach())
         prios = torch.abs(td_error) + 1e-5
-    # loss = (td_error.pow(2) * weights).mean()
     loss = F.smooth_l1_loss(q_value, expected_q_value.detach())
 
     optimizer.zero_grad()
