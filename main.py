@@ -72,4 +72,5 @@ if __name__ == "__main__":
             reward_list.clear(), length_list.clear(), loss_list.clear()
             prev_frame = frame_idx
             prev_time = time.time()
-            
+    
+    writer.close()

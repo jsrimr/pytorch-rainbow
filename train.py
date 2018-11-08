@@ -27,7 +27,8 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args)
     
     expected_q_value = reward + args.gamma * next_q_value * (1 - done)
     
-    loss = F.smooth_l1_loss(q_value, expected_q_value.detach())
+    # loss = F.smooth_l1_loss(q_value, expected_q_value.detach())
+    loss = (q_value - expected_q_value.detach()).pow(2).mean()
         
     optimizer.zero_grad()
     loss.backward()
