@@ -6,16 +6,13 @@ import numpy as np
 import random
 import math
 
-class Flatten(nn.Module):
-    def forward(self, x):
-        return x.view(x.size(0), -1)
-
 def DQN(env, args):
     if args.dueling:
-        model = DuelingDQN(env, noisy)
+        model = DuelingDQN(env, args.noisy)
     else:
-        model = DQNBase(env, noisy)
+        model = DQNBase(env, args.noisy)
     return model
+
 
 class DQNBase(nn.Module):
     def __init__(self, env, noisy):
@@ -23,6 +20,7 @@ class DQNBase(nn.Module):
         
         self.input_shape = env.observation_space.shape
         self.num_actions = env.action_space.n
+        self.noisy = noisy
 
         if noisy:
             self.Linear = NoisyLinear
@@ -45,6 +43,9 @@ class DQNBase(nn.Module):
             nn.ReLU(),
             self.Linear(512, self.num_actions)
         )
+
+        if noisy:
+            self.noisy_modules = [module for module in self.modules() if isinstance(module, NoisyLinear)]
         
     def forward(self, x):
         x = self.features(x)
@@ -62,7 +63,7 @@ class DQNBase(nn.Module):
         state       torch.Tensor with appropritate device type
         epsilon     epsilon for epsilon-greedy
         """
-        if random.random() > epsilon:
+        if random.random() > epsilon or self.noisy:  # NoisyNet does not use e-greedy
             with torch.no_grad():
                 state   = state.unsqueeze(0)
                 q_value = self.forward(state)
@@ -70,6 +71,20 @@ class DQNBase(nn.Module):
         else:
             action = random.randrange(self.num_actions)
         return action
+    
+    def sample_noise(self):
+        if self.noisy:
+            for module in self.noisy_modules:
+                module.sample_noise()
+                if isinstance(module, NoisyLinear):
+                    module.sample_noise()
+
+    def remove_noise(self):
+        if self.noisy:
+            for module in self.modules():
+                if isinstance(module, NoisyLinear):
+                    module.remove_noise()
+
 
 class DuelingDQN(DQNBase):
     def __init__(self, env, noisy):
@@ -89,6 +104,12 @@ class DuelingDQN(DQNBase):
         advantage = self.advantage(x)
         value = self.value(x)
         return value + advantage - advantage.mean()
+
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.view(x.size(0), -1)
+
 
 class NoisyLinear(nn.Linear):
     def __init__(self, in_features, out_features, sigma_init=0.017, bias=True):
@@ -111,9 +132,9 @@ class NoisyLinear(nn.Linear):
         return F.linear(input, self.weight + self.sigma_weight * self.epsilon_weight, self.bias + self.sigma_bias * self.epsilon_bias)
     
     def sample_noise(self):
-        self.epsilon_weight = torch.randn(self.out_features, self.in_features)
-        self.epsilon_bias = torch.randn(self.out_features)
+        self.epsilon_weight = self.epsilon_weight.normal_()
+        self.epsilon_bias = self.epsilon_bias.normal_()
     
     def remove_noise(self):
-        self.epsilon_weight = torch.zeros(self.out_features, self.in_features)
-        self.epsilon_bias = torch.zeros(self.out_features)
+        self.epsilon_weight = self.epislon_weight.zero_()
+        self.epsilon_bias = self.epsilon_bias.zero_()

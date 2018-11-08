@@ -19,7 +19,8 @@ def test(env, args):
         if args.render:
             env.render()
 
-        action = current_model.act(torch.FloatTensor(state).to(args.device), epsilon)
+        current_model.remove_noise()
+        action = current_model.act(torch.FloatTensor(state).to(args.device), 0.)
 
         next_state, reward, done, _ = env.step(action)
 

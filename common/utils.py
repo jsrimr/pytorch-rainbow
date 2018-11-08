@@ -3,6 +3,7 @@ import os
 import datetime
 import time
 import pathlib
+import random
 
 import torch
 import numpy as np
@@ -48,6 +49,11 @@ def print_log(frame, prev_frame, prev_time, reward_list, length_list, loss_list)
         frame, fps, avg_reward, avg_length, avg_loss
     ))
 
+def print_args(args):
+    print(' ' * 26 + 'Options')
+    for k, v in vars(args).items():
+        print(' ' * 26 + k + ': ' + str(v))
+
 def load_model(model, args):
     if args.device == torch.device("cpu"):
         map_location = lambda storage, loc: storage
@@ -71,3 +77,15 @@ def save_model(model, args):
 
     pathlib.Path('models').mkdir(exist_ok=True)
     torch.save(model.state_dict(), fname)
+
+def set_global_seeds(seed):
+    try:
+        import torch
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+    except ImportError:
+        pass
+
+    np.random.seed(seed)
+    random.seed(seed)

@@ -1,5 +1,6 @@
 import torch
 import torch.optim as optim
+import torch.nn.functional as F
 
 import time, os
 import numpy as np
@@ -36,7 +37,11 @@ def train(env, args, writer):
     for frame_idx in range(1, args.max_frames + 1):
         if args.render:
             env.render()
-        
+
+        if args.noisy:
+            current_model.sample_noise()
+            target_model.sample_noise()
+
         epsilon = epsilon_by_frame(frame_idx)
         action = current_model.act(torch.FloatTensor(state).to(args.device), epsilon)
 
@@ -61,7 +66,7 @@ def train(env, args, writer):
             loss_list.append(loss.item())
             writer.add_scalar("Loss", loss.item(), frame_idx)
 
-        if frame_idx % args.update_target:
+        if frame_idx % args.update_target == 0:
             update_target(current_model, target_model)
 
         if frame_idx % args.evaluation_interval == 0:
@@ -102,10 +107,11 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args,
 
     expected_q_value = reward + args.gamma * next_q_value * (1 - done)
 
-    td_error = (q_value - expected_q_value.detach())
     if args.prioritized_replay:
+        td_error = (q_value - expected_q_value.detach())
         prios = torch.abs(td_error) + 1e-5
-    loss = (td_error.pow(2) * weights).mean()
+    # loss = (td_error.pow(2) * weights).mean()
+    loss = F.smooth_l1_loss(q_value, expected_q_value.detach())
 
     optimizer.zero_grad()
     loss.backward()

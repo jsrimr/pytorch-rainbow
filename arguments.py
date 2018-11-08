@@ -49,6 +49,7 @@ def get_args():
     # Environment Arguments
     parser.add_argument('--env', type=str, default='PongNoFrameskip-v4',
                         help='Environment Name')
+    # TODO(Aiden): Implement Wrapper to make these arguments have effect
     parser.add_argument('--episode-life', type=int, default=1,
                         help='Whether env has episode life(1) or not(0)')
     parser.add_argument('--clip-rewards', type=int, default=1,
