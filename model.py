@@ -7,14 +7,33 @@ import random
 import math
 
 def DQN(env, args):
-    if args.dueling:
-        model = DuelingDQN(env, args.noisy)
+    if args.c51:
+        if args.dueling:
+            model = CategoricalDuelingDQN(env, args.noisy, args.Vmin, args.Vmax, args.num_atoms)
+        else:
+            model = CategoricalDQN(env, args.noisy, args.Vmin, args.Vmax, args.num_atoms)
     else:
-        model = DQNBase(env, args.noisy)
+        if args.dueling:
+            model = DuelingDQN(env, args.noisy)
+        else:
+            model = DQNBase(env, args.noisy)
+            
     return model
 
 
 class DQNBase(nn.Module):
+    """
+    Basic DQN + NoisyNet
+
+    Noisy Networks for Exploration
+    https://arxiv.org/abs/1706.10295
+    
+    parameters
+    ---------
+    env         environment(openai gym)
+    noisy       boolean value for NoisyNet. 
+                If this is set to True, self.Linear will be NoisyLinear module
+    """
     def __init__(self, env, noisy):
         super(DQNBase, self).__init__()
         
@@ -87,6 +106,10 @@ class DQNBase(nn.Module):
 
 
 class DuelingDQN(DQNBase):
+    """
+    Dueling Network Architectures for Deep Reinforcement Learning
+    https://arxiv.org/abs/1511.06581
+    """
     def __init__(self, env, noisy):
         super(DuelingDQN, self).__init__(env, noisy)
         
@@ -103,7 +126,84 @@ class DuelingDQN(DQNBase):
         x = self.flatten(x)
         advantage = self.advantage(x)
         value = self.value(x)
-        return value + advantage - advantage.mean()
+        return value + advantage - advantage.mean(1, keepdim=True)
+
+
+class CategoricalDQN(DQNBase):
+    """
+    A Distributional Perspective on Reinforcement Learning
+    https://arxiv.org/abs/1707.06887
+    """
+
+    def __init__(self, env, noisy, Vmin, Vmax, num_atoms, batch_size):
+        super(CategoricalDQN, self).__init__(env, noisy)
+    
+        support = torch.linspace(Vmin, Vmax, num_atoms)
+        offset = torch.linspace(0, (batch_size - 1) * num_atoms, batch_size).long()\
+            .unsqueeze(1).expand(batch_size, num_atoms)
+
+        self.register_buffer('support', support)
+        self.register_buffer('offset', offset)
+        self.num_atoms = num_atoms
+
+        self.fc = nn.Sequential(
+            self.Linear(self._feature_size(), 512),
+            nn.ReLU(),
+            self.Linear(512, self.num_actions * self.num_atoms),
+        )
+
+        self.softmax = nn.Softmax(dim=1)
+    
+    def forward(self, x):
+        x = self.features(x)
+        x = self.flatten(x)
+        x = self.fc(x)
+        x = self.softmax(x.view(-1, self.num_atoms))
+        x = x.view(-1, self.num_actions, self.num_atoms)
+        return x
+    
+    def act(self, state, epsilon):
+        """
+        Parameters
+        ----------
+        state       torch.Tensor with appropritate device type
+        epsilon     epsilon for epsilon-greedy
+        """
+        if random.random() > epsilon or self.noisy:  # NoisyNet does not use e-greedy
+            with torch.no_grad():
+                state   = state.unsqueeze(0)
+                q_dist = self.forward(state)
+                q_value = (q_dist * self.support).sum(2)
+                action  = q_value.max(1)[1].item()
+        else:
+            action = random.randrange(self.num_actions)
+        return action
+
+
+class CategoricalDuelingDQN(CategoricalDQN):
+
+    def __init__(self, env, noisy, Vmin, Vmax, num_atoms, batch_size):
+        super(CategoricalDuelingDQN, self).__init__(env, noisy, Vmin, Vmax, num_atoms, batch_size)
+        
+        self.advantage = self.fc
+
+        self.value = nn.Sequential(
+            self.Linear(self._feature_size(), 512),
+            nn.ReLU(),
+            self.Linear(512, num_atoms)
+        )
+    
+    def forward(self, x):
+        x = self.features(x)
+        x = self.flatten(x)
+
+        advantage = self.advantage(x).view(-1, self.num_actions, self.num_atoms)
+        value = self.value(x).view(-1, 1, self.num_atoms)
+
+        x = value + advantage - advantage.mean(1, keepdim=True)
+        x = self.softmax(x.view(-1, self.num_atoms))
+        x = x.view(-1, self.num_actions, self.num_atoms)
+        return x
 
 
 class Flatten(nn.Module):

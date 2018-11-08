@@ -37,14 +37,22 @@ def get_args():
                         help='Enable Dueling Network')
     parser.add_argument('--noisy', action='store_true',
                         help='Enable Noisy Network')
-    parser.add_argument('-per', '--prioritized-replay', action='store_true',
+    parser.add_argument('--prioritized-replay', action='store_true',
                         help='enable prioritized experience replay')
+    parser.add_argument('--c51', action='store_true',
+                        help='enable categorical dqn')
+    parser.add_argument('--Vmin', type=int, default=-10,
+                        help='Minimum value of support for c51')
+    parser.add_argument('--Vmax', type=int, default=10,
+                        help='Maximum value of support for c51')
+    parser.add_argument('--num_atoms', type=int, default=51,
+                        help='Number of atom for c51')
     parser.add_argument('--alpha', type=float, default=0.6,
-                        help='Alpha value of prioritized replay')
+                        help='Alpha value for prioritized replay')
     parser.add_argument('--beta_start', type=float, default=0.4,
-                        help='Start value of beta')
+                        help='Start value of beta for prioritized replay')
     parser.add_argument('--beta_frames', type=int, default=100000,
-                        help='End frame of beta schedule')
+                        help='End frame of beta schedule for prioritized replay')
 
     # Environment Arguments
     parser.add_argument('--env', type=str, default='PongNoFrameskip-v4',

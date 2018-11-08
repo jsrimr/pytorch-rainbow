@@ -23,6 +23,8 @@ def beta_scheduler(beta_start, beta_frames):
 
 def create_log_dir(args):
     log_dir = ""
+    if args.c51:
+        log_dir = log_dir + "c51-"
     if args.prioritized_replay:
         log_dir = log_dir + "per-"
     if args.dueling:
@@ -64,6 +66,8 @@ def load_model(model, args):
 
 def save_model(model, args):
     fname = ""
+    if args.c51:
+        fname += "c51-"
     if args.prioritized_replay:
         fname += "per-"
     if args.dueling:
