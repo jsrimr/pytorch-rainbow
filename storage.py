@@ -67,7 +67,7 @@ class NaivePrioritizedBuffer(object):
         next_states = np.concatenate(batch[3])
         dones       = batch[4]
         
-        return states, actions, rewards, next_states, dones, indices, weights
+        return states, actions, rewards, next_states, dones, weights, indices
     
     def update_priorities(self, batch_indices, batch_priorities):
         for idx, prio in zip(batch_indices, batch_priorities):

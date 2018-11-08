@@ -6,7 +6,7 @@ import numpy as np
 
 from common.utils import epsilon_scheduler, beta_scheduler, update_target, print_log, load_model, save_model
 from model import DQN
-from storage import ReplayBuffer, NaivePrioritizedBuffer
+from common.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
 
 def train(env, args, writer): 
     current_model = DQN(env, args).to(args.device)
@@ -19,7 +19,7 @@ def train(env, args, writer):
     beta_by_frame = beta_scheduler(args.beta_start, args.beta_frames)
 
     if args.prioritized_replay:
-        replay_buffer = NaivePrioritizedBuffer(args.buffer_size, args.alpha)
+        replay_buffer = PrioritizedReplayBuffer(args.buffer_size, args.alpha)
     else:
         replay_buffer = ReplayBuffer(args.buffer_size)
 
@@ -41,7 +41,7 @@ def train(env, args, writer):
         action = current_model.act(torch.FloatTensor(state).to(args.device), epsilon)
 
         next_state, reward, done, _ = env.step(action)
-        replay_buffer.push(state, action, reward, next_state, done)
+        replay_buffer.push(state, action, reward, next_state, np.float32(done))
 
         state = next_state
         episode_reward += reward
@@ -76,10 +76,10 @@ def train(env, args, writer):
 
 def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args, beta=None):
     if args.prioritized_replay:
-        state, action, reward, next_state, done, indices, weights = replay_buffer.sample(args.batch_size, beta)
+        state, action, reward, next_state, done, weights, indices = replay_buffer.sample(args.batch_size, beta)
     else:
         state, action, reward, next_state, done = replay_buffer.sample(args.batch_size)
-        weights = torch.ones(args.batch_size) / args.batch_size
+        weights = torch.ones(args.batch_size)
 
     state = torch.FloatTensor(np.float32(state)).to(args.device)
     next_state = torch.FloatTensor(np.float32(next_state)).to(args.device)
@@ -105,7 +105,7 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args,
     td_error = (q_value - expected_q_value.detach())
     if args.prioritized_replay:
         prios = torch.abs(td_error) + 1e-5
-    loss = (td_error.pow(2) * weights).sum()
+    loss = (td_error.pow(2) * weights).mean()
 
     optimizer.zero_grad()
     loss.backward()

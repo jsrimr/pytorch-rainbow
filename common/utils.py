@@ -2,6 +2,7 @@ import math
 import os
 import datetime
 import time
+import pathlib
 
 import torch
 import numpy as np
@@ -65,5 +66,8 @@ def save_model(model, args):
         fname += "double-"
     if args.noisy:
         fname += "noisy-"
-    fname += "model"
-    torch.save(model.state_dict(), '{}.pth'.format(fname))
+    fname += "dqn-{}.pth".format(args.save_model)
+    fname = os.path.join("models", fname)
+
+    pathlib.Path('models').mkdir(exist_ok=True)
+    torch.save(model.state_dict(), fname)

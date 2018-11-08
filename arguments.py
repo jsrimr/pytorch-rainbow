@@ -61,7 +61,7 @@ def get_args():
     # Evaluation Arguments
     parser.add_argument('--load_model', type=str, default=None,
                         help='Pretrained model name to load (state dict)')
-    parser.add_argument('--save-model', type=str, default=None,
+    parser.add_argument('--save-model', type=str, default='model',
                         help='Pretrained model name to save (state dict)')
     parser.add_argument('--evaluate', action='store_true',
                         help='Evaluate only')
