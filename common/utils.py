@@ -3,6 +3,7 @@ import os
 import datetime
 import time
 
+import torch
 import numpy as np
 
 def update_target(current_model, target_model):
@@ -20,6 +21,8 @@ def beta_scheduler(beta_start, beta_frames):
 
 def create_log_dir(args):
     log_dir = ""
+    if args.prioritized_replay:
+        log_dir = log_dir + "per-"
     if args.dueling:
         log_dir = log_dir + "dueling-"
     if args.double:
@@ -43,3 +46,24 @@ def print_log(frame, prev_frame, prev_time, reward_list, length_list, loss_list)
     print("Frame: {:<8} FPS: {:.2f} Avg. Reward: {:.2f} Avg. Length: {:.2f} Avg. Loss: {:.2f}".format(
         frame, fps, avg_reward, avg_length, avg_loss
     ))
+
+def load_model(model, args):
+    if args.device == torch.device("cpu"):
+        map_location = lambda storage, loc: storage
+    else:
+        map_location = None
+
+    model.load_state_dict(torch.load(args.load_model, map_location))
+
+def save_model(model, args):
+    fname = ""
+    if args.prioritized_replay:
+        fname += "per-"
+    if args.dueling:
+        fname += "dueling-"
+    if args.double:
+        fname += "double-"
+    if args.noisy:
+        fname += "noisy-"
+    fname += "model"
+    torch.save(model.state_dict(), '{}.pth'.format(fname))

@@ -37,7 +37,7 @@ def get_args():
                         help='Enable Dueling Network')
     parser.add_argument('--noisy', action='store_true',
                         help='Enable Noisy Network')
-    parser.add_argument('--prioritized-replay', action='store_true',
+    parser.add_argument('-per', '--prioritized-replay', action='store_true',
                         help='enable prioritized experience replay')
     parser.add_argument('--alpha', type=float, default=0.6,
                         help='Alpha value of prioritized replay')
