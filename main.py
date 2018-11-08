@@ -8,12 +8,12 @@ import time
 
 from tensorboardX import SummaryWriter
 
-from common.utils import epsilon_scheduler, update_target, create_log_dir, print_log
+from common.utils import epsilon_scheduler, beta_scheduler, update_target, create_log_dir, print_log
 from common.wrappers import make_atari, wrap_deepmind, wrap_pytorch
 
 from arguments import get_args
 from model import DQN
-from storage import ReplayBuffer
+from storage import ReplayBuffer, NaivePrioritizedBuffer
 from train import compute_td_loss
 
 if __name__ == "__main__":
@@ -27,9 +27,13 @@ if __name__ == "__main__":
     current_model = DQN(env, args).to(args.device)
     target_model = DQN(env, args).to(args.device)
 
-    replay_buffer = ReplayBuffer(args.buffer_size)
-
     epsilon_by_frame = epsilon_scheduler(args.eps_start, args.eps_final, args.eps_decay)
+    beta_by_frame = beta_scheduler(args.beta_start, args.beta_frames)
+
+    replay_buffer = ReplayBuffer(args.buffer_size)
+    if args.prioritized_replay:
+        replay_buffer = NaivePrioritizedBuffer(args.buffer_size, args.alpha)
+
     optimizer = optim.Adam(current_model.parameters(), lr=args.lr)
     
     reward_list, length_list, loss_list = [], [], []
@@ -60,10 +64,11 @@ if __name__ == "__main__":
             episode_reward, episode_length = 0, 0
         
         if len(replay_buffer) > args.learning_start:
-            loss = compute_td_loss(current_model, target_model, replay_buffer, optimizer, args)
+            beta = beta_by_frame(frame_idx)
+            loss = compute_td_loss(current_model, target_model, replay_buffer, optimizer, args, beta)
             loss_list.append(loss.item())
             writer.add_scalar("Loss", loss.item(), frame_idx)
-        
+
         if frame_idx % args.update_target:
             update_target(current_model, target_model)
         

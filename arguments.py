@@ -39,12 +39,12 @@ def get_args():
                         help='Enable Noisy Network')
     parser.add_argument('--prioritized-replay', action='store_true',
                         help='enable prioritized experience replay')
-    parser.add_argument('--prioritized-replay-alpha', type=float, default=0.6,
-                        help='alpha value of prioritized experience replay')
-    parser.add_argument('--prioritized-replay-beta', type=float, default=0.4,
-                        help='beta value of prioritized experience replay')
-    parser.add_argument('--prioritized-replay-beta-frames', type=int, default=100000,
-                        help='Adjustment parameter for beta')
+    parser.add_argument('--alpha', type=float, default=0.6,
+                        help='Alpha value of prioritized replay')
+    parser.add_argument('--beta_start', type=float, default=0.4,
+                        help='Start value of beta')
+    parser.add_argument('--beta_frames', type=int, default=100000,
+                        help='End frame of beta schedule')
 
     # Environment Arguments
     parser.add_argument('--env', type=str, default='PongNoFrameskip-v4',

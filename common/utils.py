@@ -13,6 +13,11 @@ def epsilon_scheduler(eps_start, eps_final, eps_decay):
         return eps_final + (eps_start - eps_final) * math.exp(-1. * frame_idx / eps_decay)
     return function
 
+def beta_scheduler(beta_start, beta_frames):
+    def function(frame_idx):
+        return min(1.0, beta_start + frame_idx * (1.0 - beta_start) / beta_frames)
+    return function
+
 def create_log_dir(args):
     log_dir = ""
     if args.dueling:

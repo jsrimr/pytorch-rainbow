@@ -4,14 +4,20 @@ import torch.nn.functional as F
 
 import numpy as np
 
-def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args):
-    state, action, reward, next_state, done = replay_buffer.sample(args.batch_size)
 
-    state      = torch.FloatTensor(np.float32(state)).to(args.device)
+def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args, beta=None):
+    if args.prioritized_replay:
+        state, action, reward, next_state, done, indices, weights = replay_buffer.sample(args.batch_size, beta)
+    else:
+        state, action, reward, next_state, done = replay_buffer.sample(args.batch_size)
+        weights = torch.ones(args.batch_size) / args.batch_size
+
+    state = torch.FloatTensor(np.float32(state)).to(args.device)
     next_state = torch.FloatTensor(np.float32(next_state)).to(args.device)
-    action     = torch.LongTensor(action).to(args.device)
-    reward     = torch.FloatTensor(reward).to(args.device)
-    done       = torch.FloatTensor(done).to(args.device)
+    action = torch.LongTensor(action).to(args.device)
+    reward = torch.FloatTensor(reward).to(args.device)
+    done = torch.FloatTensor(done).to(args.device)
+    weights = torch.FloatTensor(weights).to(args.device)
 
     q_values = current_model(state)
     next_q_state_values = target_model(next_state)
@@ -24,14 +30,18 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args)
         next_q_value = next_q_state_values.gather(1, next_actions).squeeze(1)
     else:
         next_q_value = next_q_state_values.max(1)[0]
-    
+
     expected_q_value = reward + args.gamma * next_q_value * (1 - done)
-    
-    # loss = F.smooth_l1_loss(q_value, expected_q_value.detach())
-    loss = (q_value - expected_q_value.detach()).pow(2).mean()
-        
+
+    loss = (q_value - expected_q_value.detach()).pow(2) * weights
+    if args.prioritized_replay:
+        prios = loss + 1e-5
+    loss = loss.mean()
+
     optimizer.zero_grad()
     loss.backward()
+    if args.prioritized_replay:
+        replay_buffer.update_priorities(indices, prios.data.cpu().numpy())
     optimizer.step()
-    
+
     return loss
