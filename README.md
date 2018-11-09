@@ -1,6 +1,6 @@
 # RL_PyTorch_DQN
 
-An implementation of RL algorithms in PyTorch.
+An implementation of RL algorithms in PyTorch. A lot of codes are borrowed from [baselines](https://github.com/openai/baselines), [NoisyNet-A3C](https://github.com/Kaixhin/NoisyNet-A3C), [RL-Adventure](https://github.com/higgsfield).
 
 ## Deep Q-Learning
 
@@ -25,6 +25,8 @@ torchvision
 numpy
 tensorboardX
 ```
+
+I tested code on source built torch-v1.0 with CUDA10.0.
 
 # Examples
 
