@@ -1,7 +1,6 @@
-# RL_PyTorch
+# RL_PyTorch_DQN
 
 An implementation of RL algorithms in PyTorch.
-
 
 ## Deep Q-Learning
 
@@ -18,10 +17,6 @@ List of papers are:
 5. Fortunato, M., Azar, M. G., Piot, B., Menick, J., Osband, I., Graves, A., et al. (2017, July 1). [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295). arXiv.org.
 
 6. Hessel, M., Modayil, J., van Hasselt, H., Schaul, T., Ostrovski, G., Dabney, W., et al. (2017, October 6). [Rainbow: Combining Improvements in Deep Reinforcement Learning](https://arxiv.org/abs/1710.02298). arXiv.org.
-
-## Policy Gradient
-
-1. Degris, T., White, M., & Sutton, R. S. (2012, May 22). [Off-Policy Actor-Critic](https://arxiv.org/abs/1205.4839). arXiv.org.
 
 # Requirements
 ```
