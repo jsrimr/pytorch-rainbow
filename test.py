@@ -7,6 +7,7 @@ from model import DQN
 
 def test(env, args): 
     current_model = DQN(env, args).to(args.device)
+    current_model.eval()
 
     if args.load_model and os.path.isfile(args.load_model):
         load_model(current_model, args)

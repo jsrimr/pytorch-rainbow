@@ -6,17 +6,21 @@ import numpy as np
 import random
 import math
 
+from functools import partial
+
 def DQN(env, args):
     if args.c51:
         if args.dueling:
-            model = CategoricalDuelingDQN(env, args.noisy, args.Vmin, args.Vmax, args.num_atoms, args.batch_size)
+            model = CategoricalDuelingDQN(env, args.noisy, args.sigma_init,
+                                          args.Vmin, args.Vmax, args.num_atoms, args.batch_size)
         else:
-            model = CategoricalDQN(env, args.noisy, args.Vmin, args.Vmax, args.num_atoms, args.batch_size)
+            model = CategoricalDQN(env, args.noisy, args.sigma_init,
+                                   args.Vmin, args.Vmax, args.num_atoms, args.batch_size)
     else:
         if args.dueling:
-            model = DuelingDQN(env, args.noisy)
+            model = DuelingDQN(env, args.noisy, args.sigma_init)
         else:
-            model = DQNBase(env, args.noisy)
+            model = DQNBase(env, args.noisy, args.sigma_init)
             
     return model
 
@@ -34,7 +38,7 @@ class DQNBase(nn.Module):
     noisy       boolean value for NoisyNet. 
                 If this is set to True, self.Linear will be NoisyLinear module
     """
-    def __init__(self, env, noisy):
+    def __init__(self, env, noisy, sigma_init):
         super(DQNBase, self).__init__()
         
         self.input_shape = env.observation_space.shape
@@ -42,7 +46,7 @@ class DQNBase(nn.Module):
         self.noisy = noisy
 
         if noisy:
-            self.Linear = NoisyLinear
+            self.Linear = partial(NoisyLinear, sigma_init=sigma_init)
         else:
             self.Linear = nn.Linear
 
@@ -106,8 +110,8 @@ class DuelingDQN(DQNBase):
     Dueling Network Architectures for Deep Reinforcement Learning
     https://arxiv.org/abs/1511.06581
     """
-    def __init__(self, env, noisy):
-        super(DuelingDQN, self).__init__(env, noisy)
+    def __init__(self, env, noisy, sigma_init):
+        super(DuelingDQN, self).__init__(env, noisy, sigma_init)
         
         self.advantage = self.fc
 
@@ -131,8 +135,8 @@ class CategoricalDQN(DQNBase):
     https://arxiv.org/abs/1707.06887
     """
 
-    def __init__(self, env, noisy, Vmin, Vmax, num_atoms, batch_size):
-        super(CategoricalDQN, self).__init__(env, noisy)
+    def __init__(self, env, noisy, sigma_init, Vmin, Vmax, num_atoms, batch_size):
+        super(CategoricalDQN, self).__init__(env, noisy, sigma_init)
     
         support = torch.linspace(Vmin, Vmax, num_atoms)
         offset = torch.linspace(0, (batch_size - 1) * num_atoms, batch_size).long()\
@@ -178,8 +182,8 @@ class CategoricalDQN(DQNBase):
 
 class CategoricalDuelingDQN(CategoricalDQN):
 
-    def __init__(self, env, noisy, Vmin, Vmax, num_atoms, batch_size):
-        super(CategoricalDuelingDQN, self).__init__(env, noisy, Vmin, Vmax, num_atoms, batch_size)
+    def __init__(self, env, noisy, sigma_init, Vmin, Vmax, num_atoms, batch_size):
+        super(CategoricalDuelingDQN, self).__init__(env, noisy, sigma_init, Vmin, Vmax, num_atoms, batch_size)
         
         self.advantage = self.fc
 
@@ -207,30 +211,57 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 
-class NoisyLinear(nn.Linear):
-    def __init__(self, in_features, out_features, sigma_init=0.017, bias=True):
-        super(NoisyLinear, self).__init__(in_features, out_features, bias=True)
+class NoisyLinear(nn.Module):
+    def __init__(self, in_features, out_features, sigma_init):
+        super(NoisyLinear, self).__init__()
+        
+        self.in_features = in_features
+        self.out_features = out_features 
         self.sigma_init = sigma_init
-        self.sigma_weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
-        self.sigma_bias = nn.Parameter(torch.FloatTensor(out_features))
-        self.register_buffer('epsilon_weight', torch.zeros(out_features, in_features))
-        self.register_buffer('epsilon_bias', torch.zeros(out_features))
+
+        self.weight_mu = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        self.weight_sigma = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        self.register_buffer('weight_epsilon', torch.FloatTensor(out_features, in_features))
+
+        self.bias_mu = nn.Parameter(torch.FloatTensor(out_features))
+        self.bias_sigma = nn.Parameter(torch.FloatTensor(out_features))
+        self.register_buffer('bias_epsilon', torch.FloatTensor(out_features))
+
+        self.register_buffer('sample_weight_in', torch.FloatTensor(in_features))
+        self.register_buffer('sample_weight_out', torch.FloatTensor(out_features))
+        self.register_buffer('sample_bias_out', torch.FloatTensor(out_features))
+
         self.reset_parameters()
+        self.sample_noise()
+    
+    def forward(self, x):
+        if self.training:
+            weight = self.weight_mu + self.weight_sigma.mul(self.weight_epsilon)
+            bias = self.bias_mu + self.bias_sigma.mul(self.bias_epsilon)
+        else:
+            weight = self.weight_mu
+            bias = self.bias_mu
+        
+        return F.linear(x, weight, bias)
     
     def reset_parameters(self):
-        if hasattr(self, 'sigma_weight'): # Only init after all params added (otherwise super().__init__() fails)
-            nn.init.uniform_(self.weight, -math.sqrt(3 / self.in_features), math.sqrt(3 / self.in_features))
-            nn.init.uniform_(self.bias, -math.sqrt(3 / self.in_features), math.sqrt(3 / self.in_features))
-            nn.init.constant_(self.sigma_weight, self.sigma_init)
-            nn.init.constant_(self.sigma_bias, self.sigma_init)
-        
-    def forward(self, input):
-        return F.linear(input, self.weight + self.sigma_weight * self.epsilon_weight, self.bias + self.sigma_bias * self.epsilon_bias)
-    
+        mu_range = 1 / math.sqrt(self.weight_mu.size(1))
+
+        self.weight_mu.data.uniform_(-mu_range, mu_range)
+        self.weight_sigma.data.fill_(self.sigma_init / math.sqrt(self.weight_sigma.size(1)))
+
+        self.bias_mu.data.uniform_(-mu_range, mu_range)
+        self.bias_sigma.data.fill_(self.sigma_init / math.sqrt(self.bias_sigma.size(0)))
+
     def sample_noise(self):
-        self.epsilon_weight = self.epsilon_weight.normal_()
-        self.epsilon_bias = self.epsilon_bias.normal_()
+        self.sample_weight_in = self._scale_noise(self.sample_weight_in)
+        self.sample_weight_out = self._scale_noise(self.sample_weight_out)
+        self.sample_bias_out = self._scale_noise(self.sample_bias_out)
+
+        self.weight_epsilon.copy_(self.sample_weight_out.ger(self.sample_weight_in))
+        self.bias_epsilon.copy_(self.sample_bias_out)
     
-    def remove_noise(self):
-        self.epsilon_weight = self.epsilon_weight.zero_()
-        self.epsilon_bias = self.epsilon_bias.zero_()
+    def _scale_noise(self, x):
+        x = x.normal_()
+        x = x.sign().mul(x.abs().sqrt())
+        return x

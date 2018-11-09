@@ -64,7 +64,7 @@ def train(env, args, writer):
             writer.add_scalar("data/episode_length", episode_length, frame_idx)
             episode_reward, episode_length = 0, 0
 
-        if len(replay_buffer) > args.learning_start:
+        if len(replay_buffer) > args.learning_start and frame_idx % args.train_freq == 0:
             beta = beta_by_frame(frame_idx)
             loss = compute_td_loss(current_model, target_model, replay_buffer, optimizer, args, beta)
             loss_list.append(loss.item())
@@ -115,10 +115,10 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args,
 
         expected_q_value = reward + args.gamma * next_q_value * (1 - done)
 
+        loss = F.smooth_l1_loss(q_value, expected_q_value.detach(), reduction='none')
         if args.prioritized_replay:
-            td_error = (q_value - expected_q_value.detach())
-            prios = torch.abs(td_error) + 1e-5
-        loss = F.smooth_l1_loss(q_value, expected_q_value.detach())
+            prios = torch.abs(loss) + 1e-5
+        loss = (loss * weights).mean()
     
     else:
         q_dist = current_model(state)
@@ -129,12 +129,10 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args,
         target_dist = projection_distribution(current_model, target_model, next_state, reward, done, 
                                               target_model.support, target_model.offset, args)
 
+        loss = - (target_dist * q_dist.log()).sum(1)
         if args.prioritized_replay:
-            q_value = torch.sum(q_dist * target_model.support, 1)
-            expected_q_value = torch.sum(target_dist * target_model.support, 1)
-            td_error = q_value - expected_q_value
-            prios = torch.abs(td_error)
-        loss = - (target_dist * q_dist.log()).sum(1).mean()
+            prios = torch.abs(loss) + 1e-5
+        loss = (loss * weights).mean()
 
     optimizer.zero_grad()
     loss.backward()

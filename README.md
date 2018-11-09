@@ -37,7 +37,7 @@ python main.py --env PongNoFrameskip-v4
 
 You can use RL algorithms with below arguments
 ```
-python main.py --double --dueling --noisy --c51 --per
+python main.py --double --dueling --noisy --c51 --prioritized-replay
 ```
 
 # Acknowledgements

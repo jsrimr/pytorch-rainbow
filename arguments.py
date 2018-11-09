@@ -19,6 +19,8 @@ def get_args():
                         help='Maximum memory buffer size')
     parser.add_argument('--update-target', type=int, default=1000, metavar='STEPS',
                         help='Interval of target network update')
+    parser.add_argument('--train-freq', type=int, default=1, metavar='STEPS',
+                        help='Number of steps between optimization step')
     parser.add_argument('--gamma', type=float, default=0.99, metavar='γ',
                         help='Discount factor')
     parser.add_argument('--learning-start', type=int, default=10000, metavar='N',
@@ -45,14 +47,16 @@ def get_args():
                         help='Minimum value of support for c51')
     parser.add_argument('--Vmax', type=int, default=10,
                         help='Maximum value of support for c51')
-    parser.add_argument('--num_atoms', type=int, default=51,
+    parser.add_argument('--num-atoms', type=int, default=51,
                         help='Number of atom for c51')
     parser.add_argument('--alpha', type=float, default=0.6,
                         help='Alpha value for prioritized replay')
-    parser.add_argument('--beta_start', type=float, default=0.4,
+    parser.add_argument('--beta-start', type=float, default=0.4,
                         help='Start value of beta for prioritized replay')
-    parser.add_argument('--beta_frames', type=int, default=100000,
+    parser.add_argument('--beta-frames', type=int, default=100000,
                         help='End frame of beta schedule for prioritized replay')
+    parser.add_argument('--sigma-init', type=float, default=0.4,
+                        help='Sigma initialization value for NoisyNet')
 
     # Environment Arguments
     parser.add_argument('--env', type=str, default='PongNoFrameskip-v4',
