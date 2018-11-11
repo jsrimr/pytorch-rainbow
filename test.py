@@ -9,8 +9,7 @@ def test(env, args):
     current_model = DQN(env, args).to(args.device)
     current_model.eval()
 
-    if args.load_model and os.path.isfile(args.load_model):
-        load_model(current_model, args)
+    load_model(current_model, args)
 
     episode_reward = 0
     episode_length = 0
@@ -20,7 +19,6 @@ def test(env, args):
         if args.render:
             env.render()
 
-        current_model.remove_noise()
         action = current_model.act(torch.FloatTensor(state).to(args.device), 0.)
 
         next_state, reward, done, _ = env.step(action)

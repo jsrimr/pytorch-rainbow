@@ -18,7 +18,7 @@ List of papers are:
 
 6. Hessel, M., Modayil, J., van Hasselt, H., Schaul, T., Ostrovski, G., Dabney, W., et al. (2017, October 6). [Rainbow: Combining Improvements in Deep Reinforcement Learning](https://arxiv.org/abs/1710.02298). arXiv.org.
 
-# Requirements
+## Requirements
 ```
 torch
 torchvision
@@ -28,7 +28,7 @@ tensorboardX
 
 I tested code on source built torch-v1.0 with CUDA10.0.
 
-# Examples
+## Examples
 
 You can specify environment with `--env`
 ```
@@ -40,7 +40,23 @@ You can use RL algorithms with below arguments
 python main.py --double --dueling --noisy --c51 --prioritized-replay
 ```
 
-# Acknowledgements
+## Results
+
+This is tensorboard scalars with Rainbow(`--double --dueling --noisy --c51 --prioritized-replay`)
+
+![logs](figs/result.png)
+
+You can enjoy the pretrained model with command
+
+```
+python main.py --evaluate --render --double --dueling --noisy --c51 --prioritized-replay
+```
+
+
+
+
+
+## Acknowledgements
 - Kalxhin(https://github.com/Kaixhin/NoisyNet-A3C)
 - higgsfield(https://github.com/higgsfield)
 - openai(https://github.com/openai/baselines)

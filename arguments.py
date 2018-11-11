@@ -5,7 +5,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='DQN')
 
     # Basic Arguments
-    parser.add_argument('--seed', type=int, default=1004,
+    parser.add_argument('--seed', type=int, default=1122,
                         help='Random seed')
     parser.add_argument('--batch-size', type=int, default=32,
                         help='Batch size')
@@ -13,7 +13,7 @@ def get_args():
                         help='disables CUDA training')
 
     # Training Arguments
-    parser.add_argument('--max-frames', type=int, default=1000000, metavar='STEPS',
+    parser.add_argument('--max-frames', type=int, default=1400000, metavar='STEPS',
                         help='Number of frames to train')
     parser.add_argument('--buffer-size', type=int, default=100000, metavar='CAPACITY',
                         help='Maximum memory buffer size')
@@ -61,7 +61,6 @@ def get_args():
     # Environment Arguments
     parser.add_argument('--env', type=str, default='PongNoFrameskip-v4',
                         help='Environment Name')
-    # TODO(Aiden): Implement Wrapper to make these arguments have effect
     parser.add_argument('--episode-life', type=int, default=1,
                         help='Whether env has episode life(1) or not(0)')
     parser.add_argument('--clip-rewards', type=int, default=1,

@@ -131,7 +131,7 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args,
 
         loss = - (target_dist * q_dist.log()).sum(1)
         if args.prioritized_replay:
-            prios = torch.abs(loss) + 1e-5
+            prios = torch.abs(loss) + 1e-6
         loss = (loss * weights).mean()
 
     optimizer.zero_grad()

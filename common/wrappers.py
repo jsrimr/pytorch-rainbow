@@ -249,3 +249,12 @@ class ImageToPyTorch(gym.ObservationWrapper):
 
 def wrap_pytorch(env):
     return ImageToPyTorch(env)
+
+def wrap_atari_dqn(env, args):
+    env = wrap_deepmind(env, 
+                        episode_life=args.episode_life,
+                        clip_rewards=args.clip_rewards,
+                        frame_stack=args.frame_stack,
+                        scale=args.scale)
+    env = wrap_pytorch(env)
+    return env

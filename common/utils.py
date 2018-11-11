@@ -56,14 +56,6 @@ def print_args(args):
     for k, v in vars(args).items():
         print(' ' * 26 + k + ': ' + str(v))
 
-def load_model(model, args):
-    if args.device == torch.device("cpu"):
-        map_location = lambda storage, loc: storage
-    else:
-        map_location = None
-
-    model.load_state_dict(torch.load(args.load_model, map_location))
-
 def save_model(model, args):
     fname = ""
     if args.c51:
@@ -81,6 +73,34 @@ def save_model(model, args):
 
     pathlib.Path('models').mkdir(exist_ok=True)
     torch.save(model.state_dict(), fname)
+
+def load_model(model, args):
+    if args.load_model is not None:
+        fname = os.path.join("models", args.load_model)
+    else:
+        fname = ""
+        if args.c51:
+            fname += "c51-"
+        if args.prioritized_replay:
+            fname += "per-"
+        if args.dueling:
+            fname += "dueling-"
+        if args.double:
+            fname += "double-"
+        if args.noisy:
+            fname += "noisy-"
+        fname += "dqn-{}.pth".format(args.save_model)
+        fname = os.path.join("models", fname)
+
+    if args.device == torch.device("cpu"):
+        map_location = lambda storage, loc: storage
+    else:
+        map_location = None
+    
+    if not os.path.exists(fname):
+        raise ValueError("No model saved with name {}".format(fname))
+
+    model.load_state_dict(torch.load(fname, map_location))
 
 def set_global_seeds(seed):
     try:
