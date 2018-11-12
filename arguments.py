@@ -43,6 +43,8 @@ def get_args():
                         help='enable prioritized experience replay')
     parser.add_argument('--c51', action='store_true',
                         help='enable categorical dqn')
+    parser.add_argument('--multi-step', type=int, default=1,
+                        help='N-Step Learning')
     parser.add_argument('--Vmin', type=int, default=-10,
                         help='Minimum value of support for c51')
     parser.add_argument('--Vmax', type=int, default=10,

@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 import time, os
 import numpy as np
+from collections import deque
 
 from common.utils import epsilon_scheduler, beta_scheduler, update_target, print_log, load_model, save_model
 from model import DQN
@@ -27,6 +28,10 @@ def train(env, args, writer):
         replay_buffer = PrioritizedReplayBuffer(args.buffer_size, args.alpha)
     else:
         replay_buffer = ReplayBuffer(args.buffer_size)
+    
+    state_deque = deque(maxlen=args.multi_step)
+    reward_deque = deque(maxlen=args.multi_step)
+    action_deque = deque(maxlen=args.multi_step)
 
     optimizer = optim.Adam(current_model.parameters(), lr=args.lr)
 
@@ -50,7 +55,15 @@ def train(env, args, writer):
         action = current_model.act(torch.FloatTensor(state).to(args.device), epsilon)
 
         next_state, reward, done, _ = env.step(action)
-        replay_buffer.push(state, action, reward, next_state, np.float32(done))
+        state_deque.append(state)
+        reward_deque.append(reward)
+        action_deque.append(action)
+
+        if len(state_deque) == args.multi_step or done:
+            n_reward = multi_step_reward(reward_deque, args.gamma)
+            n_state = state_deque[0]
+            n_action = action_deque[0]
+            replay_buffer.push(n_state, n_action, n_reward, next_state, np.float32(done))
 
         state = next_state
         episode_reward += reward
@@ -63,6 +76,9 @@ def train(env, args, writer):
             writer.add_scalar("data/episode_reward", episode_reward, frame_idx)
             writer.add_scalar("data/episode_length", episode_length, frame_idx)
             episode_reward, episode_length = 0, 0
+            state_deque.clear()
+            reward_deque.clear()
+            action_deque.clear()
 
         if len(replay_buffer) > args.learning_start and frame_idx % args.train_freq == 0:
             beta = beta_by_frame(frame_idx)
@@ -113,7 +129,7 @@ def compute_td_loss(current_model, target_model, replay_buffer, optimizer, args,
         else:
             next_q_value = target_next_q_values.max(1)[0]
 
-        expected_q_value = reward + args.gamma * next_q_value * (1 - done)
+        expected_q_value = reward + (args.gamma ** args.multi_step) * next_q_value * (1 - done)
 
         loss = F.smooth_l1_loss(q_value, expected_q_value.detach(), reduction='none')
         if args.prioritized_replay:
@@ -172,3 +188,9 @@ def projection_distribution(current_model, target_model, next_state, reward, don
     target_dist.view(-1).index_add_(0, (u + offset).view(-1), (target_next_q_dist * (b - l.float())).view(-1))
 
     return target_dist
+
+def multi_step_reward(rewards, gamma):
+    ret = 0.
+    for idx, reward in enumerate(rewards):
+        ret += reward * (gamma ** idx)
+    return ret

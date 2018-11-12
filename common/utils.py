@@ -23,6 +23,8 @@ def beta_scheduler(beta_start, beta_frames):
 
 def create_log_dir(args):
     log_dir = ""
+    if args.multi_step != 1:
+        log_dir = log_dir + "{}-step-".format(args.multi_step)
     if args.c51:
         log_dir = log_dir + "c51-"
     if args.prioritized_replay:
@@ -58,6 +60,8 @@ def print_args(args):
 
 def save_model(model, args):
     fname = ""
+    if args.multi_step != 1:
+        fname += "{}-step-".format(args.multi_step)
     if args.c51:
         fname += "c51-"
     if args.prioritized_replay:
@@ -79,6 +83,8 @@ def load_model(model, args):
         fname = os.path.join("models", args.load_model)
     else:
         fname = ""
+        if args.multi_step != 1:
+            fname += "{}-step-".format(args.multi_step)
         if args.c51:
             fname += "c51-"
         if args.prioritized_replay:
