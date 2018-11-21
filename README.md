@@ -1,8 +1,8 @@
-# RL_PyTorch_DQN
+# pytorch-rainbow
 
-An implementation of RL algorithms in PyTorch. A lot of codes are borrowed from [baselines](https://github.com/openai/baselines), [NoisyNet-A3C](https://github.com/Kaixhin/NoisyNet-A3C), [RL-Adventure](https://github.com/higgsfield).
+An implementation of Rainbow in PyTorch. A lot of codes are borrowed from [baselines](https://github.com/openai/baselines), [NoisyNet-A3C](https://github.com/Kaixhin/NoisyNet-A3C), [RL-Adventure](https://github.com/higgsfield).
 
-## Deep Q-Learning
+## Papers
 
 List of papers are:
 
@@ -37,19 +37,19 @@ python main.py --env PongNoFrameskip-v4
 
 You can use RL algorithms with below arguments
 ```
-python main.py --double --dueling --noisy --c51 --prioritized-replay
+python main.py --multi-step 3 --double --dueling --noisy --c51 --prioritized-replay
 ```
 
 ## Results
 
-This is tensorboard scalars with Rainbow(`--double --dueling --noisy --c51 --prioritized-replay`)
+This is tensorboard scalars with Rainbow without multi-step(`--double --dueling --noisy --c51 --prioritized-replay`)
 
 ![logs](figs/result.png)
 
 You can enjoy the pretrained model with command
 
 ```
-python main.py --evaluate --render --double --dueling --noisy --c51 --prioritized-replay
+python main.py --evaluate --render --multi-step 3 --double --dueling --noisy --c51 --prioritized-replay
 ```
 
 
