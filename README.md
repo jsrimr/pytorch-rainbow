@@ -49,7 +49,7 @@ This is tensorboard scalars with Rainbow without multi-step(`--double --dueling 
 You can enjoy the pretrained model with command
 
 ```
-python main.py --evaluate --render --multi-step 3 --double --dueling --noisy --c51 --prioritized-replay
+python main.py --evaluate --render --double --dueling --noisy --c51 --prioritized-replay
 ```
 
 
